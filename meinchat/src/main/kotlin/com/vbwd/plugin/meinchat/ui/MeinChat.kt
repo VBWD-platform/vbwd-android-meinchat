@@ -140,10 +140,12 @@ fun MeinChatScreen(
     conversationFactory: (Conversation) -> ConversationViewModel,
     roomsViewModel: MeinChatRoomsViewModel,
     roomFactory: (Room) -> RoomViewModel,
+    newChatViewModel: NewChatViewModel,
     mediaOrigin: String = "",
 ) {
     var openConversation by remember { mutableStateOf<ConversationViewModel?>(null) }
     var openRoom by remember { mutableStateOf<RoomViewModel?>(null) }
+    var showNewChat by remember { mutableStateOf(false) }
     var tab by remember { mutableStateOf(ChatTab.CHATS) }
 
     CompositionLocalProvider(LocalMediaOrigin provides mediaOrigin) {
@@ -152,11 +154,25 @@ fun MeinChatScreen(
         when {
             convo != null -> ConversationView(convo, onBack = { openConversation = null })
             room != null -> RoomView(room, onBack = { openRoom = null })
+            showNewChat ->
+                NewChatSearch(
+                    viewModel = newChatViewModel,
+                    onBack = { showNewChat = false },
+                    onOpen = {
+                        openConversation = conversationFactory(it)
+                        showNewChat = false
+                    },
+                )
             else ->
                 Column(modifier = Modifier.fillMaxSize()) {
                     ChatTabs(selected = tab, onSelect = { tab = it })
                     when (tab) {
-                        ChatTab.CHATS -> DirectInbox(inboxViewModel) { openConversation = conversationFactory(it) }
+                        ChatTab.CHATS ->
+                            DirectInbox(
+                                inboxViewModel = inboxViewModel,
+                                onNewChat = { showNewChat = true },
+                                onOpen = { openConversation = conversationFactory(it) },
+                            )
                         ChatTab.ROOMS -> RoomsList(roomsViewModel) { openRoom = roomFactory(it) }
                     }
                 }
@@ -201,30 +217,50 @@ private fun ChatTabs(
 @Composable
 private fun DirectInbox(
     inboxViewModel: MeinChatInboxViewModel,
+    onNewChat: () -> Unit,
     onOpen: (Conversation) -> Unit,
 ) {
     val state by inboxViewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { inboxViewModel.load() }
 
-    when {
-        state.isLoading && state.conversations.isEmpty() -> CenteredBox { CircularProgressIndicator() }
-        state.conversations.isEmpty() ->
-            CenteredBox {
-                Text(
-                    state.errorMessage ?: "No conversations yet",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        else ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING).testTag("meinchat_inbox"),
-                verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
-            ) {
-                items(state.conversations, key = { it.id }) { conversation ->
-                    ConversationCard(conversation) { onOpen(conversation) }
+    Column(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            onClick = onNewChat,
+            shape = RoundedCornerShape(CARD_CORNER),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = SCREEN_PADDING)
+                    .testTag("meinchat_new_chat_button"),
+        ) {
+            Text(
+                "+  New chat",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(CARD_PADDING),
+            )
+        }
+        when {
+            state.isLoading && state.conversations.isEmpty() -> CenteredBox { CircularProgressIndicator() }
+            state.conversations.isEmpty() ->
+                CenteredBox {
+                    Text(
+                        state.errorMessage ?: "No conversations yet",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-            }
+            else ->
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING).testTag("meinchat_inbox"),
+                    verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
+                ) {
+                    items(state.conversations, key = { it.id }) { conversation ->
+                        ConversationCard(conversation) { onOpen(conversation) }
+                    }
+                }
+        }
     }
 }
 

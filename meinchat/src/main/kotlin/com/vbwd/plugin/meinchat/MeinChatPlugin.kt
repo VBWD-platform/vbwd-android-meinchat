@@ -1,6 +1,5 @@
 package com.vbwd.plugin.meinchat
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import com.vbwd.core.events.AppEvents
 import com.vbwd.core.events.Unsubscribe
@@ -19,6 +18,9 @@ import com.vbwd.plugin.meinchat.ui.ConversationViewModel
 import com.vbwd.plugin.meinchat.ui.MeinChatInboxViewModel
 import com.vbwd.plugin.meinchat.ui.MeinChatRoomsViewModel
 import com.vbwd.plugin.meinchat.ui.MeinChatScreen
+import com.vbwd.plugin.meinchat.ui.NewChatViewModel
+import com.vbwd.plugin.meinchat.ui.NicknameSection
+import com.vbwd.plugin.meinchat.ui.NicknameViewModel
 import com.vbwd.plugin.meinchat.ui.RoomViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +64,7 @@ class MeinChatPlugin : Plugin {
             PluginRoute(path = "/meinchat", name = "meinchat", requiresAuth = true, matchPrefix = true) {
                 val inbox = remember { MeinChatInboxViewModel(service) }
                 val rooms = remember { MeinChatRoomsViewModel(service) }
+                val newChat = remember { NewChatViewModel(service) }
                 // Attachment urls are relative ("/uploads/..."); resolve them against
                 // the host origin (the API base minus its /api/vN suffix).
                 val mediaOrigin = remember { sdk.apiConfig.baseUrl.replace(Regex("/api/v[0-9]+/?$"), "") }
@@ -72,12 +75,16 @@ class MeinChatPlugin : Plugin {
                     },
                     roomsViewModel = rooms,
                     roomFactory = { room -> RoomViewModel(service, room) },
+                    newChatViewModel = newChat,
                     mediaOrigin = mediaOrigin,
                 )
             },
         )
 
-        sdk.addComponent("ProfileMeinChatNickname") { Text("MeinChat nickname") }
+        sdk.addComponent("ProfileMeinChatNickname") {
+            val nicknameViewModel = remember { NicknameViewModel(service) }
+            NicknameSection(nicknameViewModel)
+        }
 
         sdk.addMenuItem(
             MenuItem(
