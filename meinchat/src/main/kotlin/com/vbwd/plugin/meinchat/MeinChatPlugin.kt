@@ -60,7 +60,9 @@ class MeinChatPlugin : Plugin {
                 val inbox = remember { MeinChatInboxViewModel(service) }
                 MeinChatScreen(
                     inboxViewModel = inbox,
-                    conversationFactory = { id -> ConversationViewModel(service, sdk.cart, id) },
+                    conversationFactory = { conversation ->
+                        ConversationViewModel(service, sdk.cart, conversation)
+                    },
                 )
             },
         )
