@@ -35,6 +35,7 @@ import com.vbwd.plugin.meinchat.domain.Conversation
 import com.vbwd.plugin.meinchat.domain.MeinChatService
 import com.vbwd.plugin.meinchat.domain.MessageMeta
 import com.vbwd.plugin.meinchat.domain.Room
+import com.vbwd.plugin.meinchat.domain.TokenTransfer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -94,10 +95,15 @@ class ConversationViewModel(
                 .sortedWith(compareBy({ it.sentAt ?: "" }, { it.id }))
     }
 
-    /** A message is "mine" (right-aligned) when its sender is me — bot/system stays left. */
+    /** "Mine" (right-aligned) when I sent it — for transfers, when I am the sender. */
     fun isMine(message: ChatMessage): Boolean {
-        val me = _myNickname.value
-        return !message.isSystemMessage && me != null && message.senderNickname == me
+        val me = _myNickname.value ?: return false
+        val transfer = TokenTransfer.parseOrNull(message.body)
+        return if (transfer != null) {
+            transfer.fromNickname == me
+        } else {
+            !message.isSystemMessage && message.senderNickname == me
+        }
     }
 
     suspend fun send(text: String) {
@@ -266,16 +272,12 @@ private fun ConversationView(
             verticalArrangement = Arrangement.spacedBy(BUBBLE_SPACING),
         ) {
             items(messages, key = { it.id }) { message ->
-                if (message.isSystemMessage) {
-                    SystemNote(message.body ?: message.systemKind.orEmpty())
-                } else {
-                    MessageBubble(
-                        message = message,
-                        isMine = viewModel.isMine(message),
-                        onChoiceTap = { choice -> scope.launch { viewModel.tapChoice(choice) } },
-                        onCartCheckout = { cart -> viewModel.addCartToCart(cart) },
-                    )
-                }
+                MessageRow(
+                    message = message,
+                    isMine = viewModel.isMine(message),
+                    onChoiceTap = { choice -> scope.launch { viewModel.tapChoice(choice) } },
+                    onCartCheckout = { cart -> viewModel.addCartToCart(cart) },
+                )
             }
         }
         MessageInput(

@@ -37,4 +37,19 @@ class MeinChatModelsTest {
         val m = message("""{"kind":"bot_future_thing"}""")
         assertEquals(MessageMeta.Unknown, m.meta)
     }
+
+    @Test
+    fun `a token-transfer body parses into a TokenTransfer`() {
+        val body =
+            """{"amount":27,"note":null,"from_nickname":"bob","to_nickname":"joric","transfer_id":"abc"}"""
+        val transfer = TokenTransfer.parseOrNull(body)
+        assertEquals(27, transfer?.amount)
+        assertEquals("bob", transfer?.fromNickname)
+        assertEquals("joric", transfer?.toNickname)
+    }
+
+    @Test
+    fun `a plain text body is not a transfer`() {
+        assertEquals(null, TokenTransfer.parseOrNull("hello there"))
+    }
 }

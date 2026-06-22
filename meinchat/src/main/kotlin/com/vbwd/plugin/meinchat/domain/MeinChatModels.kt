@@ -1,5 +1,6 @@
 package com.vbwd.plugin.meinchat.domain
 
+import com.vbwd.core.networking.ApiJson
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -218,6 +219,26 @@ data class TokenTransferResult(
     @SerialName("recipient_nickname") val recipientNickname: String? = null,
     @SerialName("new_balance") val newBalance: Int? = null,
 )
+
+/**
+ * An in-chat token-transfer event. The backend posts these as a message whose
+ * `body` is this JSON; the UI renders a card instead of the raw payload.
+ */
+@Serializable
+data class TokenTransfer(
+    val amount: Int,
+    @SerialName("from_nickname") val fromNickname: String,
+    @SerialName("to_nickname") val toNickname: String,
+    val note: String? = null,
+    @SerialName("transfer_id") val transferId: String? = null,
+) {
+    companion object {
+        /** Parses a message body into a transfer, or null if it is not one. */
+        fun parseOrNull(body: String?): TokenTransfer? =
+            body?.takeIf { it.trimStart().startsWith("{") }
+                ?.let { json -> runCatching { ApiJson.instance.decodeFromString(serializer(), json) }.getOrNull() }
+    }
+}
 
 @Serializable
 data class BotConversationStyleDTO(val name: String, val tokens: Map<String, String> = emptyMap())

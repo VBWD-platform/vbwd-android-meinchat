@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.vbwd.plugin.meinchat.domain.BotCart
 import com.vbwd.plugin.meinchat.domain.BotChoice
 import com.vbwd.plugin.meinchat.domain.ChatMessage
+import com.vbwd.plugin.meinchat.domain.TokenTransfer
 import kotlin.math.abs
 
 // --- shared spacing / sizing tokens (internal: used by MeinChat + MeinChatRooms;
@@ -51,8 +53,29 @@ internal val CHIP_PADDING_H = 8.dp
 internal val CHIP_PADDING_V = 2.dp
 internal val LIST_ELEVATION = 2.dp
 internal val BAR_ELEVATION = 3.dp
+internal val COIN_SIZE = 32.dp
 internal const val FULL_WEIGHT = 1f
 private const val INITIALS_MAX = 2
+private const val ICON_BG_ALPHA = 0.15f
+
+/**
+ * Routes a message to the right surface: a token-transfer card, a centered
+ * system note, or a normal bubble. Shared by the conversation and room views.
+ */
+@Composable
+internal fun MessageRow(
+    message: ChatMessage,
+    isMine: Boolean,
+    onChoiceTap: (BotChoice) -> Unit,
+    onCartCheckout: (BotCart) -> Unit,
+) {
+    val isTransfer = TokenTransfer.parseOrNull(message.body) != null
+    if (message.isSystemMessage && !isTransfer) {
+        SystemNote(message.body ?: message.systemKind.orEmpty())
+    } else {
+        MessageBubble(message, isMine, onChoiceTap, onCartCheckout)
+    }
+}
 
 /** A list row (conversation or room): avatar, title + preview, optional unread badge / E2E chip. */
 @Composable
@@ -130,7 +153,8 @@ internal fun MessageBubble(
                 modifier = Modifier.padding(horizontal = BUBBLE_PADDING_H, vertical = BUBBLE_PADDING_V),
                 verticalArrangement = Arrangement.spacedBy(CONTENT_SPACING),
             ) {
-                if (message.senderNickname != null && !isMine) {
+                val transfer = TokenTransfer.parseOrNull(message.body)
+                if (transfer == null && message.senderNickname != null && !isMine) {
                     Text(
                         message.senderNickname,
                         style = MaterialTheme.typography.labelMedium,
@@ -138,8 +162,12 @@ internal fun MessageBubble(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-                message.body?.takeIf { it.isNotEmpty() }?.let {
-                    Text(it, color = foreground, style = MaterialTheme.typography.bodyLarge)
+                if (transfer != null) {
+                    TokenTransferContent(transfer = transfer, isMine = isMine, contentColor = foreground)
+                } else {
+                    message.body?.takeIf { it.isNotEmpty() }?.let {
+                        Text(it, color = foreground, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
                 message.meta?.let { meta ->
                     BotMetaContent(
@@ -149,6 +177,46 @@ internal fun MessageBubble(
                         contentColor = foreground,
                     )
                 }
+            }
+        }
+    }
+}
+
+/** A readable token-transfer card (replaces the raw `{"amount":…}` body). */
+@Composable
+private fun TokenTransferContent(
+    transfer: TokenTransfer,
+    isMine: Boolean,
+    contentColor: Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ROW_SPACING),
+    ) {
+        Box(
+            modifier = Modifier.size(COIN_SIZE).background(contentColor.copy(alpha = ICON_BG_ALPHA), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(if (isMine) "↑" else "↓", color = contentColor, style = MaterialTheme.typography.titleMedium)
+        }
+        Column {
+            Text(
+                "${if (isMine) "Sent" else "Received"} ${transfer.amount} tokens",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor,
+            )
+            Text(
+                if (isMine) "to ${transfer.toNickname}" else "from ${transfer.fromNickname}",
+                style = MaterialTheme.typography.labelMedium,
+                color = contentColor.copy(alpha = SENDER_ALPHA),
+            )
+            transfer.note?.takeIf { it.isNotEmpty() }?.let {
+                Text(
+                    "“$it”",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = SENDER_ALPHA),
+                )
             }
         }
     }

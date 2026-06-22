@@ -25,6 +25,7 @@ import com.vbwd.core.networking.ApiError
 import com.vbwd.plugin.meinchat.domain.ChatMessage
 import com.vbwd.plugin.meinchat.domain.MeinChatService
 import com.vbwd.plugin.meinchat.domain.Room
+import com.vbwd.plugin.meinchat.domain.TokenTransfer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,8 +75,13 @@ class RoomViewModel(
     }
 
     fun isMine(message: ChatMessage): Boolean {
-        val me = myNickname
-        return !message.isSystemMessage && me != null && message.senderNickname == me
+        val me = myNickname ?: return false
+        val transfer = TokenTransfer.parseOrNull(message.body)
+        return if (transfer != null) {
+            transfer.fromNickname == me
+        } else {
+            !message.isSystemMessage && message.senderNickname == me
+        }
     }
 
     suspend fun send(text: String) {
@@ -152,16 +158,12 @@ internal fun RoomView(
             verticalArrangement = Arrangement.spacedBy(BUBBLE_SPACING),
         ) {
             items(messages, key = { it.id }) { message ->
-                if (message.isSystemMessage) {
-                    SystemNote(message.body ?: message.systemKind.orEmpty())
-                } else {
-                    MessageBubble(
-                        message = message,
-                        isMine = viewModel.isMine(message),
-                        onChoiceTap = {},
-                        onCartCheckout = {},
-                    )
-                }
+                MessageRow(
+                    message = message,
+                    isMine = viewModel.isMine(message),
+                    onChoiceTap = {},
+                    onCartCheckout = {},
+                )
             }
         }
         MessageInput(
