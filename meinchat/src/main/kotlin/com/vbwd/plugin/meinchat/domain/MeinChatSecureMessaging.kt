@@ -14,7 +14,10 @@ interface MeinChatSecureMessaging {
     suspend fun isReady(): Boolean
 
     /** Encrypts + fans out + posts plaintext for an `e2e_v1` conversation. */
-    suspend fun sendSecure(plaintext: String, conversation: Conversation): ChatMessage
+    suspend fun sendSecure(
+        plaintext: String,
+        conversation: Conversation,
+    ): ChatMessage
 
     /** Decrypts an incoming `e2e_v1` row, returning plaintext. */
     suspend fun decryptIncoming(message: ChatMessage): String
@@ -23,5 +26,13 @@ interface MeinChatSecureMessaging {
     suspend fun peerCanReceiveE2E(userId: String): Boolean
 }
 
-/** Store id under which `meinchat-plus` registers its [MeinChatSecureMessaging]. */
+/**
+ * Store id under which `meinchat-plus` registers its [MeinChatSecureMessaging].
+ *
+ * PascalCase (not UPPER_SNAKE) is deliberate: this is a public cross-plugin API
+ * identifier referenced by `meinchat-plus`, named for 1:1 parity with the iOS/web
+ * `MeinChatSecureMessagingStoreId`. Renaming would break that contract, so the
+ * top-level-constant naming rule is suppressed for this one symbol.
+ */
+@Suppress("TopLevelPropertyNaming", "ktlint:standard:property-naming")
 const val MeinChatSecureMessagingStoreId = "meinchatSecureMessaging"

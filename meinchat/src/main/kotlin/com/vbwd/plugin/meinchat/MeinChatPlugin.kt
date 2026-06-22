@@ -35,14 +35,15 @@ class MeinChatPlugin : Plugin {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val subscriptions = mutableListOf<Unsubscribe>()
 
-    override val metadata = PluginMetadata(
-        name = "meinchat",
-        version = SemanticVersion(1, 1, 0),
-        description = "Peer-to-peer messaging with image attachments and token transfers.",
-        author = "VBWD",
-        keywords = listOf("chat", "messaging", "meinchat"),
-        translations = mapOf("en" to TRANSLATIONS),
-    )
+    override val metadata =
+        PluginMetadata(
+            name = "meinchat",
+            version = SemanticVersion(1, 1, 0),
+            description = "Peer-to-peer messaging with image attachments and token transfers.",
+            author = "VBWD",
+            keywords = listOf("chat", "messaging", "meinchat"),
+            translations = mapOf("en" to TRANSLATIONS),
+        )
 
     @Suppress("LongMethod")
     override suspend fun install(sdk: PlatformSdk) {
@@ -83,15 +84,17 @@ class MeinChatPlugin : Plugin {
 
         val tokenSink = MeinChatTokenSink(service)
         sdk.notifications.registerSink(tokenSink)
-        subscriptions += sdk.events.on(AppEvents.AUTH_LOGIN) {
-            scope.launch {
-                limits.refresh()
-                tokenSink.handleLogin()
+        subscriptions +=
+            sdk.events.on(AppEvents.AUTH_LOGIN) {
+                scope.launch {
+                    limits.refresh()
+                    tokenSink.handleLogin()
+                }
             }
-        }
-        subscriptions += sdk.events.on(AppEvents.AUTH_LOGOUT) {
-            scope.launch { tokenSink.handleLogout() }
-        }
+        subscriptions +=
+            sdk.events.on(AppEvents.AUTH_LOGOUT) {
+                scope.launch { tokenSink.handleLogout() }
+            }
     }
 
     override suspend fun uninstall() {
@@ -103,11 +106,12 @@ class MeinChatPlugin : Plugin {
     private companion object {
         const val MENU_ORDER = 40
 
-        val TRANSLATIONS = mapOf(
-            "nav.meinchat" to "MeinChat",
-            "meinchat.title" to "MeinChat",
-            "meinchat.inbox" to "Inbox",
-            "meinchat.send" to "Send",
-        )
+        val TRANSLATIONS =
+            mapOf(
+                "nav.meinchat" to "MeinChat",
+                "meinchat.title" to "MeinChat",
+                "meinchat.inbox" to "Inbox",
+                "meinchat.send" to "Send",
+            )
     }
 }

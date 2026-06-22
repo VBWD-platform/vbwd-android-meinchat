@@ -21,26 +21,34 @@ private class FakeApi : ApiClient {
         jsonBody: String?,
         deserializer: DeserializationStrategy<T>,
     ): T = EmptyResponse() as T
+
     override fun setToken(token: String?) = Unit
-    override fun on(event: ApiEvent, handler: () -> Unit) = Unit
+
+    override fun on(
+        event: ApiEvent,
+        handler: () -> Unit,
+    ) = Unit
 }
 
 class MeinChatPluginContractTest {
     private fun sdk() = DefaultPlatformSdk(FakeApi(), ApiClientConfig("http://x"), DefaultEventBus(FakeApi()))
 
     @Test
-    fun `install registers the route, profile section, menu, translations and stores`() = runTest {
-        val platform = sdk()
-        val plugin = MeinChatPlugin()
-        plugin.install(platform)
+    fun `install registers the route, profile section, menu, translations and stores`() =
+        runTest {
+            val platform = sdk()
+            val plugin = MeinChatPlugin()
+            plugin.install(platform)
 
-        assertEquals(listOf("/meinchat"), platform.getRoutes().map { it.path })
-        assertTrue(platform.getRoutes().single().matchPrefix)
-        assertTrue(platform.getComponents().containsKey("ProfileMeinChatNickname"))
-        assertEquals(listOf("meinchat"), platform.getMenuItems().map { it.id })
-        assertEquals("MeinChat", platform.getTranslations()["en"]?.get("meinchat.title"))
-        assertTrue(platform.getStores().keys.containsAll(setOf("meinchatLimits", "meinchatRetention", "meinchatCache")))
+            assertEquals(listOf("/meinchat"), platform.getRoutes().map { it.path })
+            assertTrue(platform.getRoutes().single().matchPrefix)
+            assertTrue(platform.getComponents().containsKey("ProfileMeinChatNickname"))
+            assertEquals(listOf("meinchat"), platform.getMenuItems().map { it.id })
+            assertEquals("MeinChat", platform.getTranslations()["en"]?.get("meinchat.title"))
+            assertTrue(
+                platform.getStores().keys.containsAll(setOf("meinchatLimits", "meinchatRetention", "meinchatCache")),
+            )
 
-        plugin.uninstall()
-    }
+            plugin.uninstall()
+        }
 }

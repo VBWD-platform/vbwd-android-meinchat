@@ -21,10 +21,11 @@ class MeinChatModelsTest {
 
     @Test
     fun `bot_cart meta decodes items, total and currency`() {
-        val m = message(
-            """{"kind":"bot_cart","items":[{"name":"Apple","quantity":2.0,"unit_price":1.5,"line_total":3.0}],
+        val m =
+            message(
+                """{"kind":"bot_cart","items":[{"name":"Apple","quantity":2.0,"unit_price":1.5,"line_total":3.0}],
                "total":3.0,"currency":"EUR"}""",
-        )
+            )
         val meta = assertInstanceOf(MessageMeta.Cart::class.java, m.meta)
         assertEquals("Apple", meta.cart.items.single().name)
         assertEquals("EUR", meta.cart.currency)

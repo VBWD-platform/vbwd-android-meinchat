@@ -18,8 +18,7 @@ class ClientRetentionResolver(
     private val limits: MeinChatLimitsService,
     private val store: RetentionStore = InMemoryRetentionStore(),
 ) {
-    fun serverSuggested(): Int =
-        limits.current?.messagesRetentionDaysClientSuggested ?: DEFAULT_DAYS
+    fun serverSuggested(): Int = limits.current?.messagesRetentionDaysClientSuggested ?: DEFAULT_DAYS
 
     fun effectiveDays(): Int {
         val suggested = serverSuggested()

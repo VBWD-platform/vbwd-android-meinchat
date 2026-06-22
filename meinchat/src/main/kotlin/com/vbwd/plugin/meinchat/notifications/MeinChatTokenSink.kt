@@ -19,26 +19,29 @@ class MeinChatTokenSink(
     private var isAuthenticated = false
 
     override suspend fun handleDeviceToken(tokenHex: String) {
-        val send = mutex.withLock {
-            lastTokenHex = tokenHex
-            isAuthenticated
-        }
+        val send =
+            mutex.withLock {
+                lastTokenHex = tokenHex
+                isAuthenticated
+            }
         if (send) runCatching { service.registerDeviceToken(tokenHex, app) }
     }
 
     suspend fun handleLogin() {
-        val token = mutex.withLock {
-            isAuthenticated = true
-            lastTokenHex
-        }
+        val token =
+            mutex.withLock {
+                isAuthenticated = true
+                lastTokenHex
+            }
         token?.let { runCatching { service.registerDeviceToken(it, app) } }
     }
 
     suspend fun handleLogout() {
-        val token = mutex.withLock {
-            isAuthenticated = false
-            lastTokenHex
-        }
+        val token =
+            mutex.withLock {
+                isAuthenticated = false
+                lastTokenHex
+            }
         token?.let { runCatching { service.unregisterDeviceToken(it) } }
     }
 }

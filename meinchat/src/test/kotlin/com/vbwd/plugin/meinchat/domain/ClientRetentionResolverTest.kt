@@ -7,6 +7,7 @@ private class FakeLimits(suggested: Int) : MeinChatLimitsService {
     override val current = MessagingLimits.DEFAULT.copy(messagesRetentionDaysClientSuggested = suggested)
     override val serverCapabilities = listOf("plain")
     override val myCapabilities = listOf("plain")
+
     override suspend fun refresh() = current
 }
 

@@ -33,19 +33,22 @@ class MeinChatScreenshotTest {
 
     @Test
     fun botCards() {
-        val choices = MessageMeta.BotChoices(
-            listOf(BotChoice("Track my order", "track"), BotChoice("Talk to support", "support")),
-        )
-        val cart = MessageMeta.Cart(
-            BotCart(
-                items = listOf(
-                    BotCartItem("Apples", quantity = 2.0, unitPrice = 1.5, lineTotal = 3.0),
-                    BotCartItem("Sourdough bread", quantity = 1.0, unitPrice = 2.0, lineTotal = 2.0),
+        val choices =
+            MessageMeta.BotChoices(
+                listOf(BotChoice("Track my order", "track"), BotChoice("Talk to support", "support")),
+            )
+        val cart =
+            MessageMeta.Cart(
+                BotCart(
+                    items =
+                        listOf(
+                            BotCartItem("Apples", quantity = 2.0, unitPrice = 1.5, lineTotal = 3.0),
+                            BotCartItem("Sourdough bread", quantity = 1.0, unitPrice = 2.0, lineTotal = 2.0),
+                        ),
+                    total = 5.0,
+                    currency = "EUR",
                 ),
-                total = 5.0,
-                currency = "EUR",
-            ),
-        )
+            )
         captureRoboImage("screenshots/bot_cards.png") {
             VbwdTheme(theme) {
                 Surface(modifier = Modifier.fillMaxSize()) {

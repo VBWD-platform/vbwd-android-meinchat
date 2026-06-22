@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vbwd.plugin.meinchat.domain.BotCart
 import com.vbwd.plugin.meinchat.domain.BotChoice
+import com.vbwd.plugin.meinchat.domain.BotMenuCommand
 import com.vbwd.plugin.meinchat.domain.MessageMeta
 
 private val SPACING = 8.dp
@@ -46,89 +47,110 @@ fun BotMetaContent(
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     when (meta) {
-        is MessageMeta.BotChoices -> Column(
-            modifier = Modifier.fillMaxWidth().testTag("bot_choices"),
-            verticalArrangement = Arrangement.spacedBy(SPACING),
-        ) {
-            meta.choices.forEach { choice ->
-                FilledTonalButton(
-                    onClick = { onChoiceTap(choice) },
-                    shape = CHIP_SHAPE,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(choice.label)
-                }
-            }
-        }
+        is MessageMeta.BotChoices -> BotChoiceButtons(meta.choices, onChoiceTap)
+        is MessageMeta.BotMenu -> BotMenuList(meta.commands, contentColor)
+        is MessageMeta.Cart -> BotCartCard(meta.cart, onCartCheckout)
+        is MessageMeta.BotAction, MessageMeta.Unknown -> Unit
+    }
+}
 
-        is MessageMeta.BotMenu -> Column(
-            modifier = Modifier.testTag("bot_menu"),
-            verticalArrangement = Arrangement.spacedBy(SPACING),
-        ) {
-            meta.commands.forEach { command ->
-                Column {
-                    Text(
-                        command.command,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = contentColor,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        command.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = contentColor.copy(alpha = MUTED_ALPHA),
-                    )
-                }
-            }
-        }
-
-        is MessageMeta.Cart -> Surface(
-            shape = RoundedCornerShape(CARD_CORNER),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = CARD_ELEVATION,
-            modifier = Modifier.fillMaxWidth().testTag("bot_cart"),
-        ) {
-            Column(
-                modifier = Modifier.padding(CARD_PADDING),
-                verticalArrangement = Arrangement.spacedBy(SPACING),
+@Composable
+private fun BotChoiceButtons(
+    choices: List<BotChoice>,
+    onChoiceTap: (BotChoice) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("bot_choices"),
+        verticalArrangement = Arrangement.spacedBy(SPACING),
+    ) {
+        choices.forEach { choice ->
+            FilledTonalButton(
+                onClick = { onChoiceTap(choice) },
+                shape = CHIP_SHAPE,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                meta.cart.items.forEach { item ->
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            item.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(FULL_WEIGHT),
-                        )
-                        Text(
-                            "${item.quantity.toInt()} × ${item.unitPrice}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                HorizontalDivider()
+                Text(choice.label)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BotMenuList(
+    commands: List<BotMenuCommand>,
+    contentColor: Color,
+) {
+    Column(
+        modifier = Modifier.testTag("bot_menu"),
+        verticalArrangement = Arrangement.spacedBy(SPACING),
+    ) {
+        commands.forEach { command ->
+            Column {
+                Text(
+                    command.command,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    command.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = MUTED_ALPHA),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BotCartCard(
+    cart: BotCart,
+    onCartCheckout: (BotCart) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(CARD_CORNER),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = CARD_ELEVATION,
+        modifier = Modifier.fillMaxWidth().testTag("bot_cart"),
+    ) {
+        Column(
+            modifier = Modifier.padding(CARD_PADDING),
+            verticalArrangement = Arrangement.spacedBy(SPACING),
+        ) {
+            cart.items.forEach { item ->
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        "Total",
-                        style = MaterialTheme.typography.titleSmall,
+                        item.name,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(FULL_WEIGHT),
                     )
                     Text(
-                        "${meta.cart.currency} ${meta.cart.total}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        "${item.quantity.toInt()} × ${item.unitPrice}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Button(
-                    onClick = { onCartCheckout(meta.cart) },
-                    shape = CHIP_SHAPE,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Checkout")
-                }
+            }
+            HorizontalDivider()
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "Total",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(FULL_WEIGHT),
+                )
+                Text(
+                    "${cart.currency} ${cart.total}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Button(
+                onClick = { onCartCheckout(cart) },
+                shape = CHIP_SHAPE,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Checkout")
             }
         }
-
-        is MessageMeta.BotAction, MessageMeta.Unknown -> Unit
     }
 }

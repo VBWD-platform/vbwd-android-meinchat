@@ -10,9 +10,18 @@ package com.vbwd.plugin.meinchat.domain
  * the plugin degrades to the no-cache path if a persistent store is absent.
  */
 interface MessageCache {
-    fun upsert(rows: List<ChatMessage>, atMillis: Long)
-    fun list(conversationId: String, limit: Int? = null): List<ChatMessage>
+    fun upsert(
+        rows: List<ChatMessage>,
+        atMillis: Long,
+    )
+
+    fun list(
+        conversationId: String,
+        limit: Int? = null,
+    ): List<ChatMessage>
+
     fun remove(conversationId: String)
+
     /** Removes rows cached before [olderThanMillis]; returns the number evicted. */
     fun evict(olderThanMillis: Long): Int
 }
@@ -22,14 +31,20 @@ class InMemoryMessageCache : MessageCache {
 
     private val rows = mutableListOf<Entry>()
 
-    override fun upsert(rows: List<ChatMessage>, atMillis: Long) {
+    override fun upsert(
+        rows: List<ChatMessage>,
+        atMillis: Long,
+    ) {
         rows.forEach { message ->
             this.rows.removeAll { it.message.id == message.id }
             this.rows.add(Entry(message, atMillis))
         }
     }
 
-    override fun list(conversationId: String, limit: Int?): List<ChatMessage> {
+    override fun list(
+        conversationId: String,
+        limit: Int?,
+    ): List<ChatMessage> {
         val matching = rows.filter { it.message.conversationId == conversationId }.map { it.message }
         return if (limit != null) matching.takeLast(limit) else matching
     }

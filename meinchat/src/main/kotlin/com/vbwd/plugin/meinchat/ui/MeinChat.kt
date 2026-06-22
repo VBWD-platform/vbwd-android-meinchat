@@ -43,11 +43,11 @@ import com.vbwd.plugin.meinchat.domain.ChatMessage
 import com.vbwd.plugin.meinchat.domain.Conversation
 import com.vbwd.plugin.meinchat.domain.MeinChatService
 import com.vbwd.plugin.meinchat.domain.MessageMeta
-import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 // --- spacing / sizing tokens (extracted so detekt's MagicNumber stays happy) ---
 private val SCREEN_PADDING = 16.dp
@@ -117,9 +117,8 @@ class ConversationViewModel(
 
     /** A message is "mine" (right-aligned) when its sender is me — bot/system stays left. */
     fun isMine(message: ChatMessage): Boolean {
-        if (message.isSystemMessage) return false
-        val me = _myNickname.value ?: return false
-        return message.senderNickname != null && message.senderNickname == me
+        val me = _myNickname.value
+        return !message.isSystemMessage && me != null && message.senderNickname == me
     }
 
     suspend fun send(text: String) {
@@ -166,26 +165,31 @@ fun MeinChatScreen(
 
     when {
         state.isLoading && state.conversations.isEmpty() -> CenteredBox { CircularProgressIndicator() }
-        state.conversations.isEmpty() -> CenteredBox {
-            Text(
-                state.errorMessage ?: "No conversations yet",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        else -> LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING).testTag("meinchat_inbox"),
-            verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
-        ) {
-            items(state.conversations, key = { it.id }) { conversation ->
-                ConversationCard(conversation) { openConversation = conversationFactory(conversation) }
+        state.conversations.isEmpty() ->
+            CenteredBox {
+                Text(
+                    state.errorMessage ?: "No conversations yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        }
+        else ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING).testTag("meinchat_inbox"),
+                verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
+            ) {
+                items(state.conversations, key = { it.id }) { conversation ->
+                    ConversationCard(conversation) { openConversation = conversationFactory(conversation) }
+                }
+            }
     }
 }
 
 @Composable
-private fun ConversationCard(conversation: Conversation, onClick: () -> Unit) {
+private fun ConversationCard(
+    conversation: Conversation,
+    onClick: () -> Unit,
+) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(CARD_CORNER),
@@ -227,7 +231,10 @@ private fun ConversationCard(conversation: Conversation, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ConversationView(viewModel: ConversationViewModel, onBack: () -> Unit) {
+private fun ConversationView(
+    viewModel: ConversationViewModel,
+    onBack: () -> Unit,
+) {
     val messages by viewModel.messages.collectAsState()
     val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf("") }
@@ -237,10 +244,11 @@ private fun ConversationView(viewModel: ConversationViewModel, onBack: () -> Uni
         val convo = viewModel.conversation
         ChatTopBar(title = convo.peerNickname ?: convo.id, isE2E = convo.isE2E, onBack = onBack)
         LazyColumn(
-            modifier = Modifier
-                .weight(FULL_WEIGHT)
-                .fillMaxWidth()
-                .padding(horizontal = SCREEN_PADDING, vertical = ROW_SPACING),
+            modifier =
+                Modifier
+                    .weight(FULL_WEIGHT)
+                    .fillMaxWidth()
+                    .padding(horizontal = SCREEN_PADDING, vertical = ROW_SPACING),
             verticalArrangement = Arrangement.spacedBy(BUBBLE_SPACING),
         ) {
             items(messages, key = { it.id }) { message ->
@@ -278,12 +286,13 @@ private fun MessageBubble(
     val scheme = MaterialTheme.colorScheme
     val background = if (isMine) scheme.primary else scheme.surfaceVariant
     val foreground = if (isMine) scheme.onPrimary else scheme.onSurfaceVariant
-    val shape = RoundedCornerShape(
-        topStart = BUBBLE_CORNER,
-        topEnd = BUBBLE_CORNER,
-        bottomStart = if (isMine) BUBBLE_CORNER else BUBBLE_TAIL,
-        bottomEnd = if (isMine) BUBBLE_TAIL else BUBBLE_CORNER,
-    )
+    val shape =
+        RoundedCornerShape(
+            topStart = BUBBLE_CORNER,
+            topEnd = BUBBLE_CORNER,
+            bottomStart = if (isMine) BUBBLE_CORNER else BUBBLE_TAIL,
+            bottomEnd = if (isMine) BUBBLE_TAIL else BUBBLE_CORNER,
+        )
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
@@ -327,7 +336,11 @@ private fun SystemNote(text: String) {
 }
 
 @Composable
-private fun ChatTopBar(title: String, isE2E: Boolean, onBack: () -> Unit) {
+private fun ChatTopBar(
+    title: String,
+    isE2E: Boolean,
+    onBack: () -> Unit,
+) {
     Surface(tonalElevation = BAR_ELEVATION, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = ROW_SPACING, vertical = ROW_SPACING),
@@ -335,9 +348,10 @@ private fun ChatTopBar(title: String, isE2E: Boolean, onBack: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(ROW_SPACING),
         ) {
             Box(
-                modifier = Modifier
-                    .size(AVATAR_SIZE)
-                    .clickable(onClick = onBack),
+                modifier =
+                    Modifier
+                        .size(AVATAR_SIZE)
+                        .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
                 Text("←", style = MaterialTheme.typography.headlineSmall)
@@ -362,7 +376,11 @@ private fun ChatTopBar(title: String, isE2E: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
-private fun MessageInput(draft: String, onDraftChange: (String) -> Unit, onSend: () -> Unit) {
+private fun MessageInput(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
+) {
     Surface(tonalElevation = BAR_ELEVATION, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(ROW_SPACING),
@@ -383,16 +401,20 @@ private fun MessageInput(draft: String, onDraftChange: (String) -> Unit, onSend:
 }
 
 @Composable
-private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
+private fun SendButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
     val background = if (enabled) scheme.primary else scheme.surfaceVariant
     val foreground = if (enabled) scheme.onPrimary else scheme.onSurfaceVariant
     Box(
-        modifier = Modifier
-            .size(SEND_SIZE)
-            .background(background, CircleShape)
-            .clickable(enabled = enabled, onClick = onClick)
-            .testTag("meinchat_send"),
+        modifier =
+            Modifier
+                .size(SEND_SIZE)
+                .background(background, CircleShape)
+                .clickable(enabled = enabled, onClick = onClick)
+                .testTag("meinchat_send"),
         contentAlignment = Alignment.Center,
     ) {
         Text("↑", style = MaterialTheme.typography.titleLarge, color = foreground)
@@ -402,11 +424,12 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
 @Composable
 private fun Avatar(name: String) {
     val scheme = MaterialTheme.colorScheme
-    val palette = listOf(
-        scheme.primaryContainer to scheme.onPrimaryContainer,
-        scheme.secondaryContainer to scheme.onSecondaryContainer,
-        scheme.tertiaryContainer to scheme.onTertiaryContainer,
-    )
+    val palette =
+        listOf(
+            scheme.primaryContainer to scheme.onPrimaryContainer,
+            scheme.secondaryContainer to scheme.onSecondaryContainer,
+            scheme.tertiaryContainer to scheme.onTertiaryContainer,
+        )
     val (background, foreground) = palette[abs(name.hashCode()) % palette.size]
     Box(
         modifier = Modifier.size(AVATAR_SIZE).background(background, CircleShape),

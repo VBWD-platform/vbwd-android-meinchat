@@ -14,12 +14,13 @@ data class MessagingLimits(
     @SerialName("ciphertext_max_bytes") val ciphertextMaxBytes: Int,
 ) {
     companion object {
-        val DEFAULT = MessagingLimits(
-            messagesRetentionDaysServer = 2,
-            messagesRetentionDaysClientSuggested = 10,
-            attachmentsRetentionDaysServer = 2,
-            ciphertextMaxBytes = 65_536,
-        )
+        val DEFAULT =
+            MessagingLimits(
+                messagesRetentionDaysServer = 2,
+                messagesRetentionDaysClientSuggested = 10,
+                attachmentsRetentionDaysServer = 2,
+                ciphertextMaxBytes = 65_536,
+            )
     }
 }
 
@@ -31,6 +32,7 @@ interface MeinChatLimitsService {
     val current: MessagingLimits?
     val serverCapabilities: List<String>
     val myCapabilities: List<String>
+
     suspend fun refresh(): MessagingLimits
 }
 
@@ -39,7 +41,6 @@ class DefaultMeinChatLimitsService(
     private val cacheTtlMillis: Long = DEFAULT_TTL_MILLIS,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) : MeinChatLimitsService {
-
     override var current: MessagingLimits? = null
         private set
     override var serverCapabilities: List<String> = listOf("plain")

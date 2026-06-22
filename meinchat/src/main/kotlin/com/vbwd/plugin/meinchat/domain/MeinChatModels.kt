@@ -8,10 +8,10 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -58,9 +58,13 @@ data class BotCart(val items: List<BotCartItem>, val total: Double, val currency
 @Serializable(with = MessageMetaSerializer::class)
 sealed interface MessageMeta {
     data class BotChoices(val choices: List<BotChoice>) : MessageMeta
+
     data class BotAction(val actionData: String) : MessageMeta
+
     data class BotMenu(val commands: List<BotMenuCommand>) : MessageMeta
+
     data class Cart(val cart: BotCart) : MessageMeta
+
     data object Unknown : MessageMeta
 }
 
@@ -72,52 +76,72 @@ internal object MessageMetaSerializer : KSerializer<MessageMeta> {
         val obj = input.decodeJsonElement().jsonObject
         val json = input.json
         return when (obj["kind"]?.jsonPrimitive?.contentOrNull) {
-            "bot_choices" -> MessageMeta.BotChoices(
-                obj["choices"]?.let { json.decodeFromJsonElement(ListSerializer(BotChoice.serializer()), it) }
-                    ?: emptyList(),
-            )
-            "bot_action" -> MessageMeta.BotAction(obj["action_data"]?.jsonPrimitive?.contentOrNull ?: "")
-            "bot_menu" -> MessageMeta.BotMenu(
-                obj["commands"]?.let { json.decodeFromJsonElement(ListSerializer(BotMenuCommand.serializer()), it) }
-                    ?: emptyList(),
-            )
-            "bot_cart" -> MessageMeta.Cart(
-                BotCart(
-                    items = obj["items"]
-                        ?.let { json.decodeFromJsonElement(ListSerializer(BotCartItem.serializer()), it) }
+            "bot_choices" ->
+                MessageMeta.BotChoices(
+                    obj["choices"]?.let { json.decodeFromJsonElement(ListSerializer(BotChoice.serializer()), it) }
                         ?: emptyList(),
-                    total = obj["total"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
-                    currency = obj["currency"]?.jsonPrimitive?.contentOrNull ?: "",
-                ),
-            )
+                )
+            "bot_action" -> MessageMeta.BotAction(obj["action_data"]?.jsonPrimitive?.contentOrNull ?: "")
+            "bot_menu" ->
+                MessageMeta.BotMenu(
+                    obj["commands"]?.let { json.decodeFromJsonElement(ListSerializer(BotMenuCommand.serializer()), it) }
+                        ?: emptyList(),
+                )
+            "bot_cart" -> MessageMeta.Cart(parseCart(obj, json))
             else -> MessageMeta.Unknown
         }
     }
 
-    override fun serialize(encoder: Encoder, value: MessageMeta) {
+    private fun parseCart(
+        obj: JsonObject,
+        json: Json,
+    ): BotCart =
+        BotCart(
+            items =
+                obj["items"]?.let { json.decodeFromJsonElement(ListSerializer(BotCartItem.serializer()), it) }
+                    ?: emptyList(),
+            total = obj["total"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+            currency = obj["currency"]?.jsonPrimitive?.contentOrNull ?: "",
+        )
+
+    override fun serialize(
+        encoder: Encoder,
+        value: MessageMeta,
+    ) {
         val output = encoder as? JsonEncoder ?: return
         val json = output.json
-        val element: JsonObject = when (value) {
-            is MessageMeta.BotChoices -> buildJsonObject {
-                put("kind", "bot_choices")
-                put("choices", json.encodeToJsonElement(ListSerializer(BotChoice.serializer()), value.choices))
+        val element: JsonObject =
+            when (value) {
+                is MessageMeta.BotChoices ->
+                    buildJsonObject {
+                        put("kind", "bot_choices")
+                        put("choices", json.encodeToJsonElement(ListSerializer(BotChoice.serializer()), value.choices))
+                    }
+                is MessageMeta.BotAction ->
+                    buildJsonObject {
+                        put("kind", "bot_action")
+                        put("action_data", value.actionData)
+                    }
+                is MessageMeta.BotMenu ->
+                    buildJsonObject {
+                        put("kind", "bot_menu")
+                        put(
+                            "commands",
+                            json.encodeToJsonElement(ListSerializer(BotMenuCommand.serializer()), value.commands),
+                        )
+                    }
+                is MessageMeta.Cart ->
+                    buildJsonObject {
+                        put("kind", "bot_cart")
+                        put(
+                            "items",
+                            json.encodeToJsonElement(ListSerializer(BotCartItem.serializer()), value.cart.items),
+                        )
+                        put("total", value.cart.total)
+                        put("currency", value.cart.currency)
+                    }
+                MessageMeta.Unknown -> buildJsonObject { }
             }
-            is MessageMeta.BotAction -> buildJsonObject {
-                put("kind", "bot_action")
-                put("action_data", value.actionData)
-            }
-            is MessageMeta.BotMenu -> buildJsonObject {
-                put("kind", "bot_menu")
-                put("commands", json.encodeToJsonElement(ListSerializer(BotMenuCommand.serializer()), value.commands))
-            }
-            is MessageMeta.Cart -> buildJsonObject {
-                put("kind", "bot_cart")
-                put("items", json.encodeToJsonElement(ListSerializer(BotCartItem.serializer()), value.cart.items))
-                put("total", value.cart.total)
-                put("currency", value.cart.currency)
-            }
-            MessageMeta.Unknown -> buildJsonObject { }
-        }
         output.encodeJsonElement(element)
     }
 }
@@ -171,7 +195,10 @@ data class RoomMember(
 )
 
 @Serializable
-data class NicknameSearchHit(val nickname: String, @SerialName("user_id") val userId: String? = null)
+data class NicknameSearchHit(
+    val nickname: String,
+    @SerialName("user_id") val userId: String? = null,
+)
 
 @Serializable
 data class NicknameRecord(

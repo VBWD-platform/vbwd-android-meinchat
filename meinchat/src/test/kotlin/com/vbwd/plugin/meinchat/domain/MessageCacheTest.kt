@@ -5,7 +5,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class MessageCacheTest {
-    private fun msg(id: String, conv: String) = ChatMessage(id = id, conversationId = conv)
+    private fun msg(
+        id: String,
+        conv: String,
+    ) = ChatMessage(id = id, conversationId = conv)
 
     @Test
     fun `upsert then list by conversation`() {
