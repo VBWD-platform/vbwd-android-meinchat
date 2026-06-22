@@ -41,3 +41,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Roborazzi screenshot-test output (generated)
+meinchat/screenshots/
