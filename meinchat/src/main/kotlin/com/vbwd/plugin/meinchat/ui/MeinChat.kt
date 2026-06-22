@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -112,7 +113,13 @@ class ConversationViewModel(
         if (_myNickname.value == null) {
             _myNickname.value = runCatching { service.fetchMyNickname() }.getOrNull()
         }
-        _messages.value = runCatching { service.fetchMessages(conversationId) }.getOrDefault(emptyList())
+        // The API does not guarantee order (it pages newest-first); sort oldest →
+        // newest by sent time so the thread reads top-to-bottom. ISO-8601 strings
+        // sort lexicographically in timestamp order; ties fall back to id.
+        _messages.value =
+            runCatching { service.fetchMessages(conversationId) }
+                .getOrDefault(emptyList())
+                .sortedWith(compareBy({ it.sentAt ?: "" }, { it.id }))
     }
 
     /** A message is "mine" (right-aligned) when its sender is me — bot/system stays left. */
@@ -237,13 +244,19 @@ private fun ConversationView(
 ) {
     val messages by viewModel.messages.collectAsState()
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     var draft by remember { mutableStateOf("") }
     LaunchedEffect(viewModel.conversationId) { viewModel.load() }
+    // Keep the newest message in view as the thread loads / grows.
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+    }
 
     Column(modifier = Modifier.fillMaxSize().testTag("meinchat_conversation")) {
         val convo = viewModel.conversation
         ChatTopBar(title = convo.peerNickname ?: convo.id, isE2E = convo.isE2E, onBack = onBack)
         LazyColumn(
+            state = listState,
             modifier =
                 Modifier
                     .weight(FULL_WEIGHT)
