@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -139,24 +140,27 @@ fun MeinChatScreen(
     conversationFactory: (Conversation) -> ConversationViewModel,
     roomsViewModel: MeinChatRoomsViewModel,
     roomFactory: (Room) -> RoomViewModel,
+    mediaOrigin: String = "",
 ) {
     var openConversation by remember { mutableStateOf<ConversationViewModel?>(null) }
     var openRoom by remember { mutableStateOf<RoomViewModel?>(null) }
     var tab by remember { mutableStateOf(ChatTab.CHATS) }
 
-    val convo = openConversation
-    val room = openRoom
-    when {
-        convo != null -> ConversationView(convo, onBack = { openConversation = null })
-        room != null -> RoomView(room, onBack = { openRoom = null })
-        else ->
-            Column(modifier = Modifier.fillMaxSize()) {
-                ChatTabs(selected = tab, onSelect = { tab = it })
-                when (tab) {
-                    ChatTab.CHATS -> DirectInbox(inboxViewModel) { openConversation = conversationFactory(it) }
-                    ChatTab.ROOMS -> RoomsList(roomsViewModel) { openRoom = roomFactory(it) }
+    CompositionLocalProvider(LocalMediaOrigin provides mediaOrigin) {
+        val convo = openConversation
+        val room = openRoom
+        when {
+            convo != null -> ConversationView(convo, onBack = { openConversation = null })
+            room != null -> RoomView(room, onBack = { openRoom = null })
+            else ->
+                Column(modifier = Modifier.fillMaxSize()) {
+                    ChatTabs(selected = tab, onSelect = { tab = it })
+                    when (tab) {
+                        ChatTab.CHATS -> DirectInbox(inboxViewModel) { openConversation = conversationFactory(it) }
+                        ChatTab.ROOMS -> RoomsList(roomsViewModel) { openRoom = roomFactory(it) }
+                    }
                 }
-            }
+        }
     }
 }
 

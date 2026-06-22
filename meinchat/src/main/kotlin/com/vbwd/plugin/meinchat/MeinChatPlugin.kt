@@ -62,6 +62,9 @@ class MeinChatPlugin : Plugin {
             PluginRoute(path = "/meinchat", name = "meinchat", requiresAuth = true, matchPrefix = true) {
                 val inbox = remember { MeinChatInboxViewModel(service) }
                 val rooms = remember { MeinChatRoomsViewModel(service) }
+                // Attachment urls are relative ("/uploads/..."); resolve them against
+                // the host origin (the API base minus its /api/vN suffix).
+                val mediaOrigin = remember { sdk.apiConfig.baseUrl.replace(Regex("/api/v[0-9]+/?$"), "") }
                 MeinChatScreen(
                     inboxViewModel = inbox,
                     conversationFactory = { conversation ->
@@ -69,6 +72,7 @@ class MeinChatPlugin : Plugin {
                     },
                     roomsViewModel = rooms,
                     roomFactory = { room -> RoomViewModel(service, room) },
+                    mediaOrigin = mediaOrigin,
                 )
             },
         )

@@ -18,16 +18,21 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.vbwd.plugin.meinchat.domain.BotCart
 import com.vbwd.plugin.meinchat.domain.BotChoice
 import com.vbwd.plugin.meinchat.domain.ChatMessage
+import com.vbwd.plugin.meinchat.domain.MessageAttachment
 import com.vbwd.plugin.meinchat.domain.TokenTransfer
 import kotlin.math.abs
 
@@ -54,6 +59,7 @@ internal val CHIP_PADDING_V = 2.dp
 internal val LIST_ELEVATION = 2.dp
 internal val BAR_ELEVATION = 3.dp
 internal val COIN_SIZE = 32.dp
+internal val IMAGE_MAX_WIDTH = 240.dp
 internal const val FULL_WEIGHT = 1f
 private const val INITIALS_MAX = 2
 private const val ICON_BG_ALPHA = 0.15f
@@ -169,6 +175,7 @@ internal fun MessageBubble(
                         Text(it, color = foreground, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
+                AttachmentImages(message.attachments.orEmpty())
                 message.meta?.let { meta ->
                     BotMetaContent(
                         meta = meta,
@@ -180,6 +187,28 @@ internal fun MessageBubble(
             }
         }
     }
+}
+
+/** Origin (scheme+host) used to absolutise relative `/uploads/...` attachment urls. */
+internal val LocalMediaOrigin = staticCompositionLocalOf { "" }
+
+/** Renders image attachments (one per logical image — skips the duplicate thumbnail). */
+@Composable
+private fun AttachmentImages(attachments: List<MessageAttachment>) {
+    val origin = LocalMediaOrigin.current
+    attachments
+        .filter { it.kind != "thumb" && it.mime?.startsWith("image/") == true && !it.storageUrl.isNullOrEmpty() }
+        .forEach { attachment ->
+            AsyncImage(
+                model = origin + attachment.storageUrl,
+                contentDescription = "image attachment",
+                contentScale = ContentScale.FillWidth,
+                modifier =
+                    Modifier
+                        .widthIn(max = IMAGE_MAX_WIDTH)
+                        .clip(RoundedCornerShape(BUBBLE_TAIL)),
+            )
+        }
 }
 
 /** A readable token-transfer card (replaces the raw `{"amount":…}` body). */
