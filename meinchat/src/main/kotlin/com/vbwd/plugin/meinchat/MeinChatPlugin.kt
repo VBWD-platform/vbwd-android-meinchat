@@ -17,7 +17,9 @@ import com.vbwd.plugin.meinchat.domain.InMemoryMessageCache
 import com.vbwd.plugin.meinchat.notifications.MeinChatTokenSink
 import com.vbwd.plugin.meinchat.ui.ConversationViewModel
 import com.vbwd.plugin.meinchat.ui.MeinChatInboxViewModel
+import com.vbwd.plugin.meinchat.ui.MeinChatRoomsViewModel
 import com.vbwd.plugin.meinchat.ui.MeinChatScreen
+import com.vbwd.plugin.meinchat.ui.RoomViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -59,11 +61,14 @@ class MeinChatPlugin : Plugin {
         sdk.addRoute(
             PluginRoute(path = "/meinchat", name = "meinchat", requiresAuth = true, matchPrefix = true) {
                 val inbox = remember { MeinChatInboxViewModel(service) }
+                val rooms = remember { MeinChatRoomsViewModel(service) }
                 MeinChatScreen(
                     inboxViewModel = inbox,
                     conversationFactory = { conversation ->
                         ConversationViewModel(service, sdk.cart, conversation)
                     },
+                    roomsViewModel = rooms,
+                    roomFactory = { room -> RoomViewModel(service, room) },
                 )
             },
         )

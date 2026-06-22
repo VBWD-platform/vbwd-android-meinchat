@@ -23,12 +23,12 @@ import com.vbwd.plugin.meinchat.domain.BotChoice
 import com.vbwd.plugin.meinchat.domain.BotMenuCommand
 import com.vbwd.plugin.meinchat.domain.MessageMeta
 
+// CART_* tokens are local to the bot cart card; FULL_WEIGHT comes from ChatComponents.
 private val SPACING = 8.dp
-private val CARD_PADDING = 14.dp
-private val CARD_CORNER = 16.dp
+private val CART_PADDING = 14.dp
+private val CART_CORNER = 16.dp
 private val CARD_ELEVATION = 3.dp
 private val CHIP_SHAPE = RoundedCornerShape(SPACING)
-private const val FULL_WEIGHT = 1f
 private const val MUTED_ALPHA = 0.7f
 
 /**
@@ -108,13 +108,13 @@ private fun BotCartCard(
     onCartCheckout: (BotCart) -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(CARD_CORNER),
+        shape = RoundedCornerShape(CART_CORNER),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = CARD_ELEVATION,
         modifier = Modifier.fillMaxWidth().testTag("bot_cart"),
     ) {
         Column(
-            modifier = Modifier.padding(CARD_PADDING),
+            modifier = Modifier.padding(CART_PADDING),
             verticalArrangement = Arrangement.spacedBy(SPACING),
         ) {
             cart.items.forEach { item ->
